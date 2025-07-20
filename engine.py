@@ -1,7 +1,32 @@
 import chess
 import random
 
-def get_engine_move(board: chess.Board) -> chess.Move:
+from minimax import minimax
+import config
+
+def get_engine_move(board: chess.Board, depth: int = 2) -> chess.Move:
+    """Returns the best move using minimax."""
+    best_move = None
+    best_value = float("-inf") if board.turn == chess.WHITE else float("inf")
+
+    for move in board.legal_moves:
+        board.push(move)
+        board_value = minimax(board, depth - 1, not board.turn)
+        board.pop()
+
+        if board.turn == chess.WHITE and board_value > best_value:
+            best_value = board_value
+            best_move = move
+        elif board.turn == chess.BLACK and board_value < best_value:
+            best_value = board_value
+            best_move = move
+            
+    assert best_move is not None, "No legal moves found, but game is not over"
+    return best_move
+
+
+
+def get_random_move(board: chess.Board) -> chess.Move:
     """Stub engine move: pick a random legal move."""
     return random.choice(list(board.legal_moves))
 
@@ -34,7 +59,8 @@ def main():
         if board.is_game_over():
             break
 
-        engine_move = get_engine_move(board)
+        # Get the engine's move using minimax
+        engine_move = get_engine_move(board, depth=config.DEPTH)
         board.push(engine_move)
         print("\nEngine played:", engine_move.uci())
         print(board)
