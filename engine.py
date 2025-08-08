@@ -1,27 +1,39 @@
+from typing import Optional
 import chess
 import random
 
-from minimax import minimax
-import config
+from alphabeta import alphabeta
+from config import MIN, MAX, DEPTH
 
-def get_engine_move(board: chess.Board, depth: int = 2) -> chess.Move:
-    """Returns the best move using minimax."""
-    best_move = None
-    best_value = float("-inf") if board.turn == chess.WHITE else float("inf")
+def get_engine_move(board: chess.Board, depth: int = 3) -> chess.Move:
+    """Get the best move for the engine using minimax with alpha-beta pruning."""
+    def move_score(m: chess.Move) -> int:
+        return 1 if board.is_capture(m) else 0
 
-    for move in board.legal_moves:
-        board.push(move)
-        board_value = minimax(board, depth - 1, not board.turn)
-        board.pop()
+    # Simplest heuristic: prioritize captures
+    ordered_moves = sorted(board.legal_moves, key=move_score, reverse=True)
 
-        if board.turn == chess.WHITE and board_value > best_value:
-            best_value = board_value
-            best_move = move
-        elif board.turn == chess.BLACK and board_value < best_value:
-            best_value = board_value
-            best_move = move
-            
-    assert best_move is not None, "No legal moves found, but game is not over"
+    best_move: Optional[chess.Move] = None
+    if board.turn == chess.WHITE:
+        best_val = MIN
+        for move in ordered_moves:
+            board.push(move)
+            val = alphabeta(board, depth - 1, MIN, MAX, False)
+            board.pop()
+            if val > best_val:
+                best_val = val
+                best_move = move
+    else:
+        best_val = MAX
+        for move in ordered_moves:
+            board.push(move)
+            val = alphabeta(board, depth - 1, MIN, MAX, True)
+            board.pop()
+            if val < best_val:
+                best_val = val
+                best_move = move
+
+    assert best_move is not None, "No legal moves found; position should be game-over."
     return best_move
 
 
@@ -60,7 +72,7 @@ def main():
             break
 
         # Get the engine's move using minimax
-        engine_move = get_engine_move(board, depth=config.DEPTH)
+        engine_move = get_engine_move(board, depth=DEPTH)
         board.push(engine_move)
         print("\nEngine played:", engine_move.uci())
         print(board)
